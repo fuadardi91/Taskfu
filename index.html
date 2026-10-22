@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Fu - Kerjain Deadline jangan sampai Dead</title>
+    <title>Task Fufu - Kerjain Deadline jangan sampai Dead</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -41,8 +41,8 @@
         <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-6 border-b border-cardBorder">
             <div>
                 <h1 class="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-                    ⚡ Task Fu 
-                    <span id="sync-status" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-normal border border-amber-500/30">Connecting...</span>
+                    ⚡ Task Fufu 
+                    <span id="sync-status" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-normal border border-amber-500/30">Loading...</span>
                 </h1>
                 <p class="text-sm text-zinc-400 mt-1 italic">"Kerjain Deadline jangan sampai Dead"</p>
             </div>
@@ -293,7 +293,7 @@
         </div>
     </div>
 
-    <!-- Firebase Realtime Database SDK & Logic -->
+    <!-- Firebase Realtime DB with Fallback Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -309,8 +309,13 @@
             measurementId: "G-CY1TS77EWS"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        let db = null;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getDatabase(app);
+        } catch (e) {
+            console.warn("Firebase init failed, running local mode:", e);
+        }
 
         document.addEventListener('alpine:init', () => {
             Alpine.data('taskApp', () => ({
@@ -320,9 +325,13 @@
                 selectedCategory: '',
                 isModalOpen: false,
                 isEditMode: false,
+                useCloud: false,
                 
                 categories: ['Desain', 'Fastwork', 'Admin', 'Lainnya'],
-                tasks: [],
+                tasks: JSON.parse(localStorage.getItem('task_fufu_data')) || [
+                    { id: 1, title: 'Bikin Banner Event M.I.C.E 2027', category: 'Desain', deadline: '2026-10-25', priority: 'High', status: 'In Progress', notes: 'Revisi warna dari klien' },
+                    { id: 2, title: 'Order Print Explora Digital', category: 'Admin', deadline: '2026-10-24', priority: 'Medium', status: 'To Do', notes: 'Cek ulang ukuran banner' }
+                ],
 
                 form: {
                     firebaseKey: null,
@@ -342,25 +351,48 @@
 
                 init() {
                     const statusEl = document.getElementById('sync-status');
+                    
+                    if (!db) {
+                        statusEl.textContent = "Local Mode";
+                        statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-normal border border-zinc-700";
+                        return;
+                    }
+
                     const tasksRef = ref(db, 'tasks');
+                    
+                    // Coba connect ke Firebase, beri timeout 4 detik. Kalau jaringan/rules blokir, otomatis pakai Local Mode agar aplikasi tidak nge-freeze.
+                    let isLoaded = false;
+                    setTimeout(() => {
+                        if (!isLoaded) {
+                            statusEl.textContent = "Local Mode (Offline)";
+                            statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-normal border border-zinc-700";
+                        }
+                    }, 4000);
 
                     onValue(tasksRef, (snapshot) => {
+                        isLoaded = true;
                         const data = snapshot.val();
-                        let loadedTasks = [];
                         if (data) {
+                            let loadedTasks = [];
                             Object.keys(data).forEach(key => {
                                 loadedTasks.push({ firebaseKey: key, ...data[key] });
                             });
+                            loadedTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+                            this.tasks = loadedTasks;
+                            this.useCloud = true;
                         }
-                        loadedTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
-                        this.tasks = loadedTasks;
 
                         statusEl.textContent = "Synced Live";
                         statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal border border-emerald-500/30";
                     }, (error) => {
-                        console.error("Firebase DB error:", error);
-                        statusEl.textContent = "Sync Error / Check Rules";
-                        statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-normal border border-red-500/30";
+                        console.warn("Firebase sync fallback:", error);
+                        statusEl.textContent = "Local Mode (Ready)";
+                        statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-normal border border-zinc-700";
+                    });
+
+                    // Watcher untuk simpan ke LocalStorage sebagai backup
+                    this.$watch('tasks', (val) => {
+                        localStorage.setItem('task_fufu_data', JSON.stringify(val));
                     });
                 },
 
@@ -390,57 +422,74 @@
                 },
 
                 async saveTask() {
-                    try {
-                        if (this.isEditMode && this.form.firebaseKey) {
-                            const taskRef = ref(db, 'tasks/' + this.form.firebaseKey);
-                            await update(taskRef, {
-                                title: this.form.title,
-                                category: this.form.category,
-                                deadline: this.form.deadline,
-                                priority: this.form.priority,
-                                status: this.form.status,
-                                notes: this.form.notes
-                            });
-                        } else {
-                            const newTaskId = Date.now();
-                            const newTaskRef = push(ref(db, 'tasks'));
-                            await set(newTaskRef, {
-                                id: newTaskId,
-                                title: this.form.title,
-                                category: this.form.category,
-                                deadline: this.form.deadline,
-                                priority: this.form.priority,
-                                status: this.form.status,
-                                notes: this.form.notes
-                            });
+                    if (db && this.useCloud) {
+                        try {
+                            if (this.isEditMode && this.form.firebaseKey) {
+                                const taskRef = ref(db, 'tasks/' + this.form.firebaseKey);
+                                await update(taskRef, {
+                                    title: this.form.title,
+                                    category: this.form.category,
+                                    deadline: this.form.deadline,
+                                    priority: this.form.priority,
+                                    status: this.form.status,
+                                    notes: this.form.notes
+                                });
+                            } else {
+                                const newTaskId = Date.now();
+                                const newTaskRef = push(ref(db, 'tasks'));
+                                await set(newTaskRef, {
+                                    id: newTaskId,
+                                    title: this.form.title,
+                                    category: this.form.category,
+                                    deadline: this.form.deadline,
+                                    priority: this.form.priority,
+                                    status: this.form.status,
+                                    notes: this.form.notes
+                                });
+                            }
+                            this.closeModal();
+                            return;
+                        } catch (e) {
+                            console.warn("Cloud save failed, using local fallback:", e);
                         }
-                        this.closeModal();
-                    } catch (e) {
-                        alert("Gagal menyimpan ke Firebase Realtime Database: " + e.message);
                     }
+
+                    // Fallback Local Mode
+                    if (this.isEditMode) {
+                        const index = this.tasks.findIndex(t => t.id === this.form.id);
+                        if (index !== -1) this.tasks[index] = { ...this.form };
+                    } else {
+                        const newTask = { ...this.form, id: Date.now(), firebaseKey: 'local_' + Date.now() };
+                        this.tasks.push.apply(this.tasks, [newTask]);
+                    }
+                    this.closeModal();
                 },
 
                 async deleteTask(task) {
                     if (confirm('Yakin ingin menghapus task ini?')) {
-                        try {
-                            if (task.firebaseKey) {
+                        if (db && this.useCloud && task.firebaseKey && !task.firebaseKey.startsWith('local_')) {
+                            try {
                                 await remove(ref(db, 'tasks/' + task.firebaseKey));
+                                return;
+                            } catch (e) {
+                                console.warn("Cloud delete failed:", e);
                             }
-                        } catch (e) {
-                            alert("Gagal menghapus: " + e.message);
                         }
+                        this.tasks = this.tasks.filter(t => t.id !== task.id);
                     }
                 },
 
                 async toggleComplete(task) {
-                    try {
-                        const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
-                        if (task.firebaseKey) {
+                    const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
+                    if (db && this.useCloud && task.firebaseKey && !task.firebaseKey.startsWith('local_')) {
+                        try {
                             await update(ref(db, 'tasks/' + task.firebaseKey), { status: newStatus });
+                            return;
+                        } catch (e) {
+                            console.warn("Cloud status update failed:", e);
                         }
-                    } catch (e) {
-                        console.error("Gagal update status:", e);
                     }
+                    task.status = newStatus;
                 },
 
                 formatDate(dateStr) {
@@ -490,7 +539,7 @@
                     return days;
                 },
 
-                selectDate(dateStr) {
+5                selectDate(dateStr) {
                     this.selectedDate = dateStr;
                 },
 
