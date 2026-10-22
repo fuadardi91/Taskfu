@@ -293,14 +293,16 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs & Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // Konfigurasi Firebase terbaru dari kamu
         const firebaseConfig = {
             apiKey: "AIzaSyCW0IEz5qLmKEe62wvJSAYGcQ73_o4kAu8",
             authDomain: "taskfufu.firebaseapp.com",
+            databaseURL: "https://taskfufu-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "taskfufu",
             storageBucket: "taskfufu.firebasestorage.app",
             messagingSenderId: "727503607105",
@@ -354,7 +356,7 @@
                             statusEl.textContent = "Synced Live";
                             statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal border border-emerald-500/30";
                         }, (error) => {
-                            console.warn("Firebase snapshot warning (check Firestore Rules):", error);
+                            console.warn("Firebase snapshot warning:", error);
                             statusEl.textContent = "Rules Need Publish";
                             statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-normal border border-amber-500/30";
                         });
