@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Fufu - Mobile View</title>
+    <title>TaskFu - Mobile View</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
         <header class="flex items-center justify-between mb-4 pb-3 border-b border-[#27272a]">
             <div>
                 <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
-                    ⚡ Task Fufu 
+                    ⚡ TaskFu 
                     <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">Mobile View</span>
                 </h1>
             </div>
@@ -94,7 +94,7 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let tasks = [];
-        let currentFilterStatus = 'To Do'; // Default awal ke To Do
+        let currentFilterStatus = 'To Do';
         let currentViewMode = 'list';
         let viewMonth = new Date().getMonth();
         let viewYear = new Date().getFullYear();
