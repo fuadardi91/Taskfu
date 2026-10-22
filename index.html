@@ -20,6 +20,8 @@
             }
         }
     </script>
+    <!-- Alpine.js untuk Interaksi UI -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -40,12 +42,12 @@
             <div>
                 <h1 class="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
                     ⚡ Task Fufu 
-                    <span id="sync-status" class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 font-normal border border-indigo-500/30">Ready</span>
+                    <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal border border-emerald-500/30">Local Mode (Super Fast)</span>
                 </h1>
                 <p class="text-sm text-zinc-400 mt-1 italic">"Kerjain Deadline jangan sampai Dead"</p>
             </div>
             <div class="flex items-center gap-3">
-                <button type="button" @click="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm cursor-pointer z-10 relative">
+                <button type="button" @click="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Tambah Task Baru
                 </button>
@@ -99,7 +101,7 @@
                 <template x-for="task in filteredTasks" :key="task.id">
                     <div class="bg-cardBorder/40 hover:bg-cardBorder/80 border border-cardBorder rounded-2xl p-4 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
                         <div class="flex items-start gap-3">
-                            <button type="button" @click="toggleComplete(task)" class="mt-1 w-5 h-5 rounded-lg border flex items-center justify-center transition cursor-pointer"
+                            <button type="button" @click="toggleComplete(task.id)" class="mt-1 w-5 h-5 rounded-lg border flex items-center justify-center transition cursor-pointer"
                                 :class="task.status === 'Completed' ? 'bg-emerald-500 border-emerald-500 text-darkBg' : 'border-zinc-600 hover:border-indigo-500'">
                                 <svg x-show="task.status === 'Completed'" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             </button>
@@ -141,7 +143,7 @@
                                 <button type="button" @click="editTask(task)" class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition cursor-pointer" title="Edit">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </button>
-                                <button type="button" @click="deleteTask(task)" class="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition cursor-pointer" title="Hapus">
+                                <button type="button" @click="deleteTask(task.id)" class="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition cursor-pointer" title="Hapus">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
                             </div>
@@ -291,28 +293,8 @@
         </div>
     </div>
 
-    <!-- Alpine.js harus dimuat duluan sebelum script Firebase -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-    <!-- Firebase & Logic Script -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCW0IEz5qLmKEe62wvJSAYGcQ73_o4kAu8",
-            authDomain: "taskfufu.firebaseapp.com",
-            databaseURL: "https://taskfufu-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "taskfufu",
-            storageBucket: "taskfufu.firebasestorage.app",
-            messagingSenderId: "727503607105",
-            appId: "1:727503607105:web:d5495e85f79e2dd566fdc0",
-            measurementId: "G-0H0HVW6ZTQ"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
+    <!-- Alpine.js Logic -->
+    <script>
         document.addEventListener('alpine:init', () => {
             Alpine.data('taskApp', () => ({
                 currentView: 'list',
@@ -323,11 +305,14 @@
                 isEditMode: false,
                 
                 categories: ['Desain', 'Fastwork', 'Admin', 'Lainnya'],
-                tasks: [],
+                
+                tasks: JSON.parse(localStorage.getItem('task_fufu_data')) || [
+                    { id: 1, title: 'Bikin Banner Event M.I.C.E 2027', category: 'Desain', deadline: '2026-10-25', priority: 'High', status: 'In Progress', notes: 'Revisi warna dari klien' },
+                    { id: 2, title: 'Order Print Explora Digital', category: 'Admin', deadline: '2026-10-24', priority: 'Medium', status: 'To Do', notes: 'Cek ulang ukuran banner' }
+                ],
 
                 form: {
                     id: null,
-                    docId: null,
                     title: '',
                     category: 'Desain',
                     deadline: new Date().toISOString().split('T')[0],
@@ -342,28 +327,9 @@
                 monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
 
                 init() {
-                    const statusEl = document.getElementById('sync-status');
-                    
-                    try {
-                        onSnapshot(collection(db, "tasks"), (snapshot) => {
-                            let loadedTasks = [];
-                            snapshot.forEach((docSnap) => {
-                                loadedTasks.push({ docId: docSnap.id, ...docSnap.data() });
-                            });
-                            loadedTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
-                            this.tasks = loadedTasks;
-
-                            statusEl.textContent = "Synced Live";
-                            statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal border border-emerald-500/30";
-                        }, (error) => {
-                            console.warn("Firebase warning:", error);
-                            statusEl.textContent = "Check Rules";
-                            statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-normal border border-amber-500/30";
-                        });
-                    } catch (err) {
-                        statusEl.textContent = "Offline Mode";
-                        statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-normal border border-zinc-700";
-                    }
+                    this.$watch('tasks', (val) => {
+                        localStorage.setItem('task_fufu_data', JSON.stringify(val));
+                    });
                 },
 
                 get filteredTasks() {
@@ -377,7 +343,7 @@
 
                 openModal() {
                     this.isEditMode = false;
-                    this.form = { id: null, docId: null, title: '', category: 'Desain', deadline: new Date().toISOString().split('T')[0], priority: 'Medium', status: 'To Do', notes: '' };
+                    this.form = { id: null, title: '', category: 'Desain', deadline: new Date().toISOString().split('T')[0], priority: 'Medium', status: 'To Do', notes: '' };
                     this.isModalOpen = true;
                 },
 
@@ -391,56 +357,27 @@
                     this.isModalOpen = false;
                 },
 
-                async saveTask() {
-                    try {
-                        if (this.isEditMode && this.form.docId) {
-                            const taskRef = doc(db, "tasks", this.form.docId);
-                            await updateDoc(taskRef, {
-                                title: this.form.title,
-                                category: this.form.category,
-                                deadline: this.form.deadline,
-                                priority: this.form.priority,
-                                status: this.form.status,
-                                notes: this.form.notes
-                            });
-                        } else {
-                            await addDoc(collection(db, "tasks"), {
-                                id: Date.now(),
-                                title: this.form.title,
-                                category: this.form.category,
-                                deadline: this.form.deadline,
-                                priority: this.form.priority,
-                                status: this.form.status,
-                                notes: this.form.notes
-                            });
-                        }
-                        this.closeModal();
-                    } catch (e) {
-                        alert("Gagal menyimpan ke Firebase. Pastikan Firestore Rules sudah diatur ke 'allow read, write: if true;':\n\n" + e.message);
+                saveTask() {
+                    if (this.isEditMode) {
+                        const index = this.tasks.findIndex(t => t.id === this.form.id);
+                        if (index !== -1) this.tasks[index] = { ...this.form };
+                    } else {
+                        const newTask = { ...this.form, id: Date.now() };
+                        this.tasks.push(newTask);
                     }
+                    this.closeModal();
                 },
 
-                async deleteTask(task) {
+                deleteTask(id) {
                     if (confirm('Yakin ingin menghapus task ini?')) {
-                        try {
-                            if (task.docId) {
-                                await deleteDoc(doc(db, "tasks", task.docId));
-                            }
-                        } catch (e) {
-                            alert("Gagal menghapus: " + e.message);
-                        }
+                        this.tasks = this.tasks.filter(t => t.id !== id);
                     }
                 },
 
-                async toggleComplete(task) {
-                    try {
-                        const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
-                        if (task.docId) {
-                            const taskRef = doc(db, "tasks", task.docId);
-                            await updateDoc(taskRef, { status: newStatus });
-                        }
-                    } catch (e) {
-                        console.error("Gagal update status:", e);
+                toggleComplete(id) {
+                    const task = this.tasks.find(t => t.id === id);
+                    if (task) {
+                        task.status = task.status === 'Completed' ? 'To Do' : 'Completed';
                     }
                 },
 
