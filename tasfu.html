@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Fufu - Kerjain Deadline jangan sampai Dead</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#09090b',
+                        cardBg: '#121216',
+                        cardBorder: '#27272a',
+                        accent: '#6366f1',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Alpine.js untuk Interaksi UI -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+    </style>
+</head>
+<body class="bg-darkBg text-zinc-100 min-h-screen selection:bg-indigo-500 selection:text-white" x-data="taskApp()">
+
+    <!-- Main Container -->
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-6 border-b border-cardBorder">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
+                    ⚡ Task Fufu 
+                    <span id="sync-status" class="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-normal border border-amber-500/30">Connecting...</span>
+                </h1>
+                <p class="text-sm text-zinc-400 mt-1 italic">"Kerjain Deadline jangan sampai Dead"</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button @click="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Tambah Task Baru
+                </button>
+            </div>
+        </header>
+
+        <!-- View Switcher & Filters Bar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6 bg-cardBg p-3 rounded-2xl border border-cardBorder">
+            <!-- Mode Toggle (List / Calendar) -->
+            <div class="flex bg-zinc-900 p-1 rounded-xl border border-cardBorder">
+                <button @click="currentView = 'list'" :class="currentView === 'list' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium transition">
+                    📋 List View
+                </button>
+                <button @click="currentView = 'calendar'" :class="currentView === 'calendar' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium transition">
+                    📅 Calendar View
+                </button>
+            </div>
+
+            <!-- Search & Filter Category (Hanya aktif di List View) -->
+            <div class="flex items-center gap-2" x-show="currentView === 'list'">
+                <input type="text" x-model="searchQuery" placeholder="Cari task..." class="bg-zinc-900 border border-cardBorder text-sm rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500 w-full sm:w-48">
+                <select x-model="selectedCategory" class="bg-zinc-900 border border-cardBorder text-sm rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500">
+                    <option value="">Semua Kategori</option>
+                    <template x-for="cat in categories" :key="cat">
+                        <option :value="cat" x-text="cat"></option>
+                    </template>
+                </select>
+            </div>
+        </div>
+
+        <!-- ================= LIST VIEW ================= -->
+        <div x-show="currentView === 'list'" x-transition>
+            <!-- Status Tabs -->
+            <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+                <button @click="statusFilter = 'all'" :class="statusFilter === 'all' ? 'bg-zinc-800 text-white border-zinc-600' : 'bg-transparent text-zinc-400 border-cardBorder'" class="px-4 py-1.5 rounded-xl border text-sm font-medium transition whitespace-nowrap">
+                    Semua (<span x-text="tasks.length"></span>)
+                </button>
+                <button @click="statusFilter = 'To Do'" :class="statusFilter === 'To Do' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-transparent text-zinc-400 border-cardBorder'" class="px-4 py-1.5 rounded-xl border text-sm font-medium transition whitespace-nowrap">
+                    To Do (<span x-text="tasks.filter(t => t.status === 'To Do').length"></span>)
+                </button>
+                <button @click="statusFilter = 'In Progress'" :class="statusFilter === 'In Progress' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : 'bg-transparent text-zinc-400 border-cardBorder'" class="px-4 py-1.5 rounded-xl border text-sm font-medium transition whitespace-nowrap">
+                    In Progress (<span x-text="tasks.filter(t => t.status === 'In Progress').length"></span>)
+                </button>
+                <button @click="statusFilter = 'Completed'" :class="statusFilter === 'Completed' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-transparent text-zinc-400 border-cardBorder'" class="px-4 py-1.5 rounded-xl border text-sm font-medium transition whitespace-nowrap">
+                    Completed (<span x-text="tasks.filter(t => t.status === 'Completed').length"></span>)
+                </button>
+            </div>
+
+            <!-- Task List -->
+            <div class="space-y-3">
+                <template x-for="task in filteredTasks" :key="task.id">
+                    <div class="bg-cardBorder/40 hover:bg-cardBorder/80 border border-cardBorder rounded-2xl p-4 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+                        <div class="flex items-start gap-3">
+                            <!-- Checkbox / Status Toggle -->
+                            <button @click="toggleComplete(task)" class="mt-1 w-5 h-5 rounded-lg border flex items-center justify-center transition"
+                                :class="task.status === 'Completed' ? 'bg-emerald-500 border-emerald-500 text-darkBg' : 'border-zinc-600 hover:border-indigo-500'">
+                                <svg x-show="task.status === 'Completed'" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            </button>
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="font-semibold text-white text-base" :class="task.status === 'Completed' ? 'line-through text-zinc-500' : ''" x-text="task.title"></h3>
+                                    <span class="text-xs px-2.5 py-0.5 rounded-full font-medium"
+                                        :class="{
+                                            'bg-purple-500/10 text-purple-400 border border-purple-500/20': task.category === 'Desain',
+                                            'bg-blue-500/10 text-blue-400 border border-blue-500/20': task.category === 'Fastwork',
+                                            'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20': task.category === 'Admin',
+                                            'bg-zinc-800 text-zinc-300 border border-zinc-700': !['Desain','Fastwork','Admin'].includes(task.category)
+                                        }" x-text="task.category"></span>
+                                    
+                                    <!-- Priority Badge -->
+                                    <span class="text-xs px-2 py-0.5 rounded font-bold"
+                                        :class="{
+                                            'bg-red-500/10 text-red-400': task.priority === 'High',
+                                            'bg-amber-500/10 text-amber-400': task.priority === 'Medium',
+                                            'bg-zinc-800 text-zinc-400': task.priority === 'Low'
+                                        }" x-text="task.priority"></span>
+                                </div>
+                                <p class="text-xs text-zinc-400 mt-1" x-text="task.notes || 'Tidak ada catatan'"></p>
+                            </div>
+                        </div>
+
+                        <!-- Right Info & Actions -->
+                        <div class="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-3 sm:pt-0 border-cardBorder">
+                            <!-- Deadline Badge -->
+                            <div class="text-right">
+                                <span class="text-xs font-medium block" :class="isOverdue(task.deadline) && task.status !== 'Completed' ? 'text-red-400 font-bold' : 'text-zinc-400'" x-text="formatDate(task.deadline)"></span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full mt-0.5 inline-block"
+                                    :class="{
+                                        'bg-zinc-800 text-zinc-300': task.status === 'To Do',
+                                        'bg-blue-500/20 text-blue-300': task.status === 'In Progress',
+                                        'bg-emerald-500/20 text-emerald-300': task.status === 'Completed'
+                                    }" x-text="task.status"></span>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex items-center gap-1">
+                                <button @click="editTask(task)" class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition" title="Edit">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                </button>
+                                <button @click="deleteTask(task.id)" class="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition" title="Hapus">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Empty State -->
+                <div x-show="filteredTasks.length === 0" class="text-center py-16 bg-cardBg border border-cardBorder rounded-2xl">
+                    <p class="text-zinc-500 text-sm">Belum ada task yang sesuai.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= CALENDAR VIEW ================= -->
+        <div x-show="currentView === 'calendar'" x-transition class="bg-cardBg border border-cardBorder rounded-2xl p-6">
+            <!-- Calendar Header -->
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-bold text-white" x-text="monthNames[currentMonth] + ' ' + currentYear"></h2>
+                <div class="flex items-center gap-2">
+                    <button @click="changeMonth(-1)" class="p-2 bg-zinc-900 border border-cardBorder hover:bg-zinc-800 rounded-xl text-zinc-300 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <button @click="currentMonth = new Date().getMonth(); currentYear = new Date().getFullYear();" class="px-3 py-1.5 bg-zinc-900 border border-cardBorder hover:bg-zinc-800 rounded-xl text-xs font-medium text-zinc-300 transition">Hari Ini</button>
+                    <button @click="changeMonth(1)" class="p-2 bg-zinc-900 border border-cardBorder hover:bg-zinc-800 rounded-xl text-zinc-300 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Days of Week -->
+            <div class="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-semibold text-zinc-500">
+                <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
+            </div>
+
+            <!-- Grid Days -->
+            <div class="grid grid-cols-7 gap-2">
+                <template x-for="day in calendarDays">
+                    <div @click="day.dateStr && selectDate(day.dateStr)" 
+                         class="min-h-[85px] p-2 rounded-xl border flex flex-col justify-between transition relative"
+                         :class="{
+                             'bg-zinc-900/40 border-cardBorder/40 text-zinc-600 cursor-default': !day.dateStr,
+                             'bg-zinc-900 border-cardBorder hover:border-indigo-500 cursor-pointer': day.dateStr && selectedDate !== day.dateStr,
+                             'bg-indigo-600/10 border-indigo-500 cursor-pointer': day.dateStr && selectedDate === day.dateStr,
+                             'ring-1 ring-indigo-500': day.isToday
+                         }">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium" :class="day.isToday ? 'text-indigo-400 font-bold' : 'text-zinc-300'" x-text="day.dayNum"></span>
+                            <span x-show="day.tasks.length > 0" class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                        </div>
+                        <div class="space-y-1 overflow-hidden">
+                            <template x-for="t in day.tasks.slice(0, 2)">
+                                <div class="text-[10px] truncate px-1.5 py-0.5 rounded font-medium"
+                                    :class="{
+                                        'bg-purple-500/20 text-purple-300': t.category === 'Desain',
+                                        'bg-blue-500/20 text-blue-300': t.category === 'Fastwork',
+                                        'bg-emerald-500/20 text-emerald-300': t.category === 'Admin',
+                                        'bg-zinc-800 text-zinc-300': !['Desain','Fastwork','Admin'].includes(t.category)
+                                    }" x-text="t.title"></div>
+                            </template>
+                            <div x-show="day.tasks.length > 2" class="text-[9px] text-zinc-500 font-medium pl-1">
+                                +<span x-text="day.tasks.length - 2"></span> lainnya
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Selected Date Task Details -->
+            <div class="mt-6 pt-6 border-t border-cardBorder" x-show="selectedDate">
+                <h3 class="text-sm font-semibold text-zinc-300 mb-3">
+                    Task Deadline pada Tanggal: <span class="text-indigo-400" x-text="selectedDate"></span>
+                </h3>
+                <div class="space-y-2">
+                    <template x-for="t in tasksForSelectedDate" :key="t.id">
+                        <div class="bg-zinc-900 border border-cardBorder rounded-xl p-3 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <span class="w-2 h-2 rounded-full" :class="t.status === 'Completed' ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+                                <div>
+                                    <h4 class="text-sm font-medium text-white" x-text="t.title"></h4>
+                                    <p class="text-xs text-zinc-400" x-text="t.category + ' • ' + t.priority"></p>
+                                </div>
+                            </div>
+                            <span class="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-300" x-text="t.status"></span>
+                        </div>
+                    </template>
+                    <div x-show="tasksForSelectedDate.length === 0" class="text-xs text-zinc-500 italic">
+                        Tidak ada deadline task di tanggal ini.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ================= MODAL TAMBAH/EDIT TASK ================= -->
+    <div x-show="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" x-transition.opacity>
+        <div class="bg-cardBg border border-cardBorder rounded-2xl w-full max-w-md p-6 shadow-2xl" @click.away="closeModal()">
+            <h2 class="text-lg font-bold text-white mb-4" x-text="isEditMode ? 'Edit Task' : 'Tambah Task Baru'"></h2>
+            
+            <form @submit.prevent="saveTask" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Judul Pekerjaan</label>
+                    <input type="text" x-model="form.title" required placeholder="Contoh: Bikin Banner Fastwork..." class="w-full bg-zinc-900 border border-cardBorder text-sm rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-400 mb-1">Kategori</label>
+                        <select x-model="form.category" class="w-full bg-zinc-900 border border-cardBorder text-sm rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500">
+                            <option value="Desain">Desain</option>
+                            <option value="Fastwork">Fastwork</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-400 mb-1">Prioritas</label>
+                        <select x-model="form.priority" class="w-full bg-zinc-900 border border-cardBorder text-sm rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500">
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-400 mb-1">Tanggal Deadline</label>
+                        <input type="date" x-model="form.deadline" required class="w-full bg-zinc-900 border border-cardBorder text-sm rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-400 mb-1">Status</label>
+                        <select x-model="form.status" class="w-full bg-zinc-900 border border-cardBorder text-sm rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500">
+                            <option value="To Do">To Do</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Catatan Tambahan (Opsional)</label>
+                    <textarea x-model="form.notes" rows="2" placeholder="Link file, revisi klien, dll..." class="w-full bg-zinc-900 border border-cardBorder text-sm rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" @click="closeModal()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium rounded-xl transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition">Simpan Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // ==========================================
+        // FIREBASE CONFIG TERPASANG
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCW0IEz5qLmKEe62wvJSAYGcQ73_o4kAu8",
+            authDomain: "taskfufu.firebaseapp.com",
+            projectId: "taskfufu",
+            storageBucket: "taskfufu.firebasestorage.app",
+            messagingSenderId: "727503607105",
+            appId: "1:727503607105:web:d5495e85f79e2dd566fdc0",
+            measurementId: "G-0H0HVW6ZTQ"
+        };
+
+        // Inisialisasi Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Hubungkan ke Alpine.js
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('taskApp', () => ({
+                currentView: 'list',
+                statusFilter: 'all',
+                searchQuery: '',
+                selectedCategory: '',
+                isModalOpen: false,
+                isEditMode: false,
+                
+                categories: ['Desain', 'Fastwork', 'Admin', 'Lainnya'],
+                tasks: [],
+
+                form: {
+                    id: null,
+                    title: '',
+                    category: 'Desain',
+                    deadline: new Date().toISOString().split('T')[0],
+                    priority: 'Medium',
+                    status: 'To Do',
+                    notes: ''
+                },
+
+                // Calendar State
+                currentMonth: new Date().getMonth(),
+                currentYear: new Date().getFullYear(),
+                selectedDate: new Date().toISOString().split('T')[0],
+                monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+
+                init() {
+                    const statusEl = document.getElementById('sync-status');
+                    
+                    // Real-time listener dari Firestore
+                    try {
+                        onSnapshot(collection(db, "tasks"), (snapshot) => {
+                            let loadedTasks = [];
+                            snapshot.forEach((docSnap) => {
+                                loadedTasks.push({ docId: docSnap.id, ...docSnap.data() });
+                            });
+                            // Urutkan berdasarkan deadline terdekat
+                            loadedTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+                            this.tasks = loadedTasks;
+
+                            statusEl.textContent = "Synced Live";
+                            statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal border border-emerald-500/30";
+                        }, (error) => {
+                            console.error("Firebase connection error:", error);
+                            statusEl.textContent = "Sync Error / Check Rules";
+                            statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-normal border border-red-500/30";
+                        });
+                    } catch (err) {
+                        statusEl.textContent = "Offline Mode";
+                        statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-normal border border-zinc-700";
+                    }
+                },
+
+                get filteredTasks() {
+                    return this.tasks.filter(t => {
+                        const matchesStatus = this.statusFilter === 'all' || t.status === this.statusFilter;
+                        const matchesCategory = !this.selectedCategory || t.category === this.selectedCategory;
+                        const matchesSearch = t.title.toLowerCase().includes(this.searchQuery.toLowerCase());
+                        return matchesStatus && matchesCategory && matchesSearch;
+                    });
+                },
+
+                openModal() {
+                    this.isEditMode = false;
+                    this.form = { id: null, title: '', category: 'Desain', deadline: new Date().toISOString().split('T')[0], priority: 'Medium', status: 'To Do', notes: '' };
+                    this.isModalOpen = true;
+                },
+
+                editTask(task) {
+                    this.isEditMode = true;
+                    this.form = { ...task };
+                    this.isModalOpen = true;
+                },
+
+                closeModal() {
+                    this.isModalOpen = false;
+                },
+
+                async saveTask() {
+                    try {
+                        if (this.isEditMode) {
+                            const taskRef = doc(db, "tasks", this.form.docId);
+                            await updateDoc(taskRef, {
+                                title: this.form.title,
+                                category: this.form.category,
+                                deadline: this.form.deadline,
+                                priority: this.form.priority,
+                                status: this.form.status,
+                                notes: this.form.notes
+                            });
+                        } else {
+                            await addDoc(collection(db, "tasks"), {
+                                id: Date.now(),
+                                title: this.form.title,
+                                category: this.form.category,
+                                deadline: this.form.deadline,
+                                priority: this.form.priority,
+                                status: this.form.status,
+                                notes: this.form.notes
+                            });
+                        }
+                        this.closeModal();
+                    } catch (e) {
+                        alert("Gagal menyimpan ke Firebase. Pastikan Firestore Database sudah diaktifkan di console Firebase (Test Mode): " + e.message);
+                    }
+                },
+
+                async deleteTask(id) {
+                    if (confirm('Yakin ingin menghapus task ini?')) {
+                        const taskToDelete = this.tasks.find(t => t.id === id);
+                        if (taskToDelete && taskToDelete.docId) {
+                            await deleteDoc(doc(db, "tasks", taskToDelete.docId));
+                        }
+                    }
+                },
+
+                async toggleComplete(task) {
+                    const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
+                    const taskRef = doc(db, "tasks", task.docId);
+                    await updateDoc(taskRef, { status: newStatus });
+                },
+
+                formatDate(dateStr) {
+                    if (!dateStr) return '';
+                    const options = { day: 'numeric', month: 'short', year: 'numeric' };
+                    return new Date(dateStr).toLocaleDateString('id-ID', options);
+                },
+
+                isOverdue(dateStr) {
+                    const today = new Date().toISOString().split('T')[0];
+                    return dateStr < today;
+                },
+
+                // Calendar Methods
+                changeMonth(direction) {
+                    this.currentMonth += direction;
+                    if (this.currentMonth > 11) {
+                        this.currentMonth = 0;
+                        this.currentYear++;
+                    } else if (this.currentMonth < 0) {
+                        this.currentMonth = 11;
+                        this.currentYear--;
+                    }
+                },
+
+                get calendarDays() {
+                    const firstDayIndex = new Date(this.currentYear, this.currentMonth, 1).getDay();
+                    const totalDays = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    
+                    let days = [];
+                    for (let i = 0; i < firstDayIndex; i++) {
+                        days.push({ dayNum: '', dateStr: null, tasks: [], isToday: false });
+                    }
+                    for (let i = 1; i <= totalDays; i++) {
+                        const dayStr = String(i).padStart(2, '0');
+                        const monthStr = String(this.currentMonth + 1).padStart(2, '0');
+                        const dateStr = `${this.currentYear}-${monthStr}-${dayStr}`;
+                        
+                        const dayTasks = this.tasks.filter(t => t.deadline === dateStr);
+                        days.push({
+                            dayNum: i,
+                            dateStr: dateStr,
+                            tasks: dayTasks,
+                            isToday: dateStr === todayStr
+                        });
+                    }
+                    return days;
+                },
+
+                selectDate(dateStr) {
+                    this.selectedDate = dateStr;
+                },
+
+                get tasksForSelectedDate() {
+                    return this.tasks.filter(t => t.deadline === this.selectedDate);
+                }
+            }));
+        });
+    </script>
+</body>
+</html>
