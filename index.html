@@ -19,7 +19,7 @@
             <div>
                 <h1 class="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
                     ⚡ Task Fufu 
-                    <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 font-normal border border-indigo-500/30">Local Mode (Super Fast)</span>
+                    <span id="sync-status" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-normal border border-amber-500/30">Connecting...</span>
                 </h1>
                 <p class="text-sm text-zinc-400 mt-1 italic">"Kerjain Deadline jangan sampai Dead"</p>
             </div>
@@ -142,12 +142,16 @@
         </div>
     </div>
 
-    <!-- PURE LOCAL JAVASCRIPT LOGIC -->
+    <!-- SUPABASE JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        let tasks = JSON.parse(localStorage.getItem('task_fufu_data')) || [
-            { id: 1, title: 'Bikin Banner Event M.I.C.E 2027', category: 'Desain', deadline: new Date().toISOString().split('T')[0], priority: 'High', status: 'In Progress', notes: 'Revisi warna dari klien' }
-        ];
+        // Konfigurasi Supabase
+        const SUPABASE_URL = 'https://wnrlyvvgwpfytjjlnoke.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_qDIhgn7HsMp7TuaqvuA7BA_RhivTTQ4';
+        
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        let tasks = [];
         let currentFilterStatus = 'all';
         let currentViewMode = 'list';
         let viewMonth = new Date().getMonth();
@@ -156,8 +160,26 @@
 
         const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-        function saveDataLocal() {
-            localStorage.setItem('task_fufu_data', JSON.stringify(tasks));
+        // Ambil data langsung dari Supabase
+        async function fetchTasks() {
+            const statusEl = document.getElementById('sync-status');
+            try {
+                const { data, error } = await _supabase.from('tasks').select('*');
+                if (error) throw error;
+                
+                tasks = data || [];
+                tasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+                
+                statusEl.textContent = "Synced Live";
+                statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal border border-emerald-500/30";
+                
+                renderTasks();
+                renderCalendar();
+            } catch (err) {
+                console.error("Supabase error:", err);
+                statusEl.textContent = "Connection Error";
+                statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-normal border border-red-500/30";
+            }
         }
 
         function switchView(mode) {
@@ -266,7 +288,7 @@
             document.getElementById('task-modal').classList.remove('hidden');
         }
 
-        function handleFormSubmit(e) {
+        async function handleFormSubmit(e) {
             e.preventDefault();
             const id = document.getElementById('task-id').value;
             const title = document.getElementById('form-title').value;
@@ -277,33 +299,40 @@
             const notes = document.getElementById('form-notes').value;
 
             if (id) {
-                tasks = tasks.map(t => t.id == id ? { ...t, title, category, priority, deadline, status, notes } : t);
+                const { error } = await _supabase.from('tasks').update({ title, category, priority, deadline, status, notes }).eq('id', id);
+                if (error) alert("Gagal update: " + error.message);
             } else {
-                tasks.push({ id: Date.now(), title, category, priority, deadline, status, notes });
+                const newId = Date.now();
+                const { error } = await _supabase.from('tasks').insert([{ id: newId, title, category, priority, deadline, status, notes }]);
+                if (error) alert("Gagal tambah: " + error.message);
             }
 
-            saveDataLocal();
-            renderTasks();
-            renderCalendar();
             closeModal();
+            fetchTasks();
         }
 
-        function deleteTask(id) {
+        async function deleteTask(id) {
             if(confirm('Yakin ingin menghapus task ini?')) {
-                tasks = tasks.filter(t => t.id !== id);
-                saveDataLocal();
-                renderTasks();
-                renderCalendar();
+                const { error } = await _supabase.from('tasks').delete().eq('id', id);
+                if (error) {
+                    alert("Gagal hapus: " + error.message);
+                } else {
+                    fetchTasks();
+                }
             }
         }
 
-        function toggleStatus(id) {
+        async function toggleStatus(id) {
             const task = tasks.find(t => t.id === id);
             if (!task) return;
-            task.status = task.status === 'Completed' ? 'To Do' : 'Completed';
-            saveDataLocal();
-            renderTasks();
-            renderCalendar();
+            const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
+            
+            const { error } = await _supabase.from('tasks').update({ status: newStatus }).eq('id', id);
+            if (error) {
+                alert("Gagal update status: " + error.message);
+            } else {
+                fetchTasks();
+            }
         }
 
         function changeMonth(dir) {
@@ -377,9 +406,8 @@
             `).join('');
         }
 
-        // Inisialisasi awal
-        renderTasks();
-        renderCalendar();
+        // Ambil data pertama kali saat halaman dibuka
+        fetchTasks();
     </script>
 </body>
 </html>
