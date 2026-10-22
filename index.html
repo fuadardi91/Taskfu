@@ -20,6 +20,8 @@
             }
         }
     </script>
+    <!-- Alpine.js untuk Interaksi UI -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -40,12 +42,12 @@
             <div>
                 <h1 class="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
                     ⚡ Task Fufu 
-                    <span id="sync-status" class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 font-normal border border-indigo-500/30">Ready</span>
+                    <span id="sync-status" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-normal border border-amber-500/30">Connecting...</span>
                 </h1>
                 <p class="text-sm text-zinc-400 mt-1 italic">"Kerjain Deadline jangan sampai Dead"</p>
             </div>
             <div class="flex items-center gap-3">
-                <button type="button" @click="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm cursor-pointer z-10 relative">
+                <button type="button" @click="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Tambah Task Baru
                 </button>
@@ -291,13 +293,10 @@
         </div>
     </div>
 
-    <!-- Alpine.js harus dimuat duluan sebelum script Firebase -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-    <!-- Firebase & Logic Script -->
+    <!-- Firebase Realtime Database SDK & Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCW0IEz5qLmKEe62wvJSAYGcQ73_o4kAu8",
@@ -306,12 +305,12 @@
             projectId: "taskfufu",
             storageBucket: "taskfufu.firebasestorage.app",
             messagingSenderId: "727503607105",
-            appId: "1:727503607105:web:d5495e85f79e2dd566fdc0",
-            measurementId: "G-0H0HVW6ZTQ"
+            appId: "1:727503607105:web:f4dd6ba07fbf6a6f66fdc0",
+            measurementId: "G-CY1TS77EWS"
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        const db = getDatabase(app);
 
         document.addEventListener('alpine:init', () => {
             Alpine.data('taskApp', () => ({
@@ -326,8 +325,8 @@
                 tasks: [],
 
                 form: {
+                    firebaseKey: null,
                     id: null,
-                    docId: null,
                     title: '',
                     category: 'Desain',
                     deadline: new Date().toISOString().split('T')[0],
@@ -343,27 +342,26 @@
 
                 init() {
                     const statusEl = document.getElementById('sync-status');
-                    
-                    try {
-                        onSnapshot(collection(db, "tasks"), (snapshot) => {
-                            let loadedTasks = [];
-                            snapshot.forEach((docSnap) => {
-                                loadedTasks.push({ docId: docSnap.id, ...docSnap.data() });
-                            });
-                            loadedTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
-                            this.tasks = loadedTasks;
+                    const tasksRef = ref(db, 'tasks');
 
-                            statusEl.textContent = "Synced Live";
-                            statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal border border-emerald-500/30";
-                        }, (error) => {
-                            console.warn("Firebase warning:", error);
-                            statusEl.textContent = "Check Rules";
-                            statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-normal border border-amber-500/30";
-                        });
-                    } catch (err) {
-                        statusEl.textContent = "Offline Mode";
-                        statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-normal border border-zinc-700";
-                    }
+                    onValue(tasksRef, (snapshot) => {
+                        const data = snapshot.val();
+                        let loadedTasks = [];
+                        if (data) {
+                            Object.keys(data).forEach(key => {
+                                loadedTasks.push({ firebaseKey: key, ...data[key] });
+                            });
+                        }
+                        loadedTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+                        this.tasks = loadedTasks;
+
+                        statusEl.textContent = "Synced Live";
+                        statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal border border-emerald-500/30";
+                    }, (error) => {
+                        console.error("Firebase DB error:", error);
+                        statusEl.textContent = "Sync Error / Check Rules";
+                        statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-normal border border-red-500/30";
+                    });
                 },
 
                 get filteredTasks() {
@@ -377,7 +375,7 @@
 
                 openModal() {
                     this.isEditMode = false;
-                    this.form = { id: null, docId: null, title: '', category: 'Desain', deadline: new Date().toISOString().split('T')[0], priority: 'Medium', status: 'To Do', notes: '' };
+                    this.form = { firebaseKey: null, id: null, title: '', category: 'Desain', deadline: new Date().toISOString().split('T')[0], priority: 'Medium', status: 'To Do', notes: '' };
                     this.isModalOpen = true;
                 },
 
@@ -393,9 +391,9 @@
 
                 async saveTask() {
                     try {
-                        if (this.isEditMode && this.form.docId) {
-                            const taskRef = doc(db, "tasks", this.form.docId);
-                            await updateDoc(taskRef, {
+                        if (this.isEditMode && this.form.firebaseKey) {
+                            const taskRef = ref(db, 'tasks/' + this.form.firebaseKey);
+                            await update(taskRef, {
                                 title: this.form.title,
                                 category: this.form.category,
                                 deadline: this.form.deadline,
@@ -404,8 +402,10 @@
                                 notes: this.form.notes
                             });
                         } else {
-                            await addDoc(collection(db, "tasks"), {
-                                id: Date.now(),
+                            const newTaskId = Date.now();
+                            const newTaskRef = push(ref(db, 'tasks'));
+                            await set(newTaskRef, {
+                                id: newTaskId,
                                 title: this.form.title,
                                 category: this.form.category,
                                 deadline: this.form.deadline,
@@ -416,15 +416,15 @@
                         }
                         this.closeModal();
                     } catch (e) {
-                        alert("Gagal menyimpan ke Firebase. Pastikan Firestore Rules sudah diatur ke 'allow read, write: if true;':\n\n" + e.message);
+                        alert("Gagal menyimpan ke Firebase Realtime Database: " + e.message);
                     }
                 },
 
                 async deleteTask(task) {
                     if (confirm('Yakin ingin menghapus task ini?')) {
                         try {
-                            if (task.docId) {
-                                await deleteDoc(doc(db, "tasks", task.docId));
+                            if (task.firebaseKey) {
+                                await remove(ref(db, 'tasks/' + task.firebaseKey));
                             }
                         } catch (e) {
                             alert("Gagal menghapus: " + e.message);
@@ -435,9 +435,8 @@
                 async toggleComplete(task) {
                     try {
                         const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
-                        if (task.docId) {
-                            const taskRef = doc(db, "tasks", task.docId);
-                            await updateDoc(taskRef, { status: newStatus });
+                        if (task.firebaseKey) {
+                            await update(ref(db, 'tasks/' + task.firebaseKey), { status: newStatus });
                         }
                     } catch (e) {
                         console.error("Gagal update status:", e);
