@@ -73,6 +73,15 @@
                     <button onclick="changeMonth(1)" class="p-2 bg-zinc-900 border border-[#27272a] rounded-xl text-zinc-300 cursor-pointer">▶</button>
                 </div>
             </div>
+            
+            <!-- Legend Priority Color -->
+            <div class="flex items-center gap-4 mb-4 text-xs text-zinc-400 bg-zinc-900/50 p-2.5 rounded-xl border border-[#27272a]">
+                <span class="font-medium text-zinc-300">Prioritas:</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> High</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Medium</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Low</span>
+            </div>
+
             <div class="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-semibold text-zinc-500">
                 <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
             </div>
@@ -145,7 +154,6 @@
     <!-- SUPABASE JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Konfigurasi Supabase
         const SUPABASE_URL = 'https://wnrlyvvgwpfytjjlnoke.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_qDIhgn7HsMp7TuaqvuA7BA_RhivTTQ4';
         
@@ -160,7 +168,6 @@
 
         const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-        // Ambil data langsung dari Supabase
         async function fetchTasks() {
             const statusEl = document.getElementById('sync-status');
             try {
@@ -212,202 +219,4 @@
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.className = "tab-btn px-4 py-1.5 rounded-xl border border-[#27272a] text-zinc-400 text-sm font-medium cursor-pointer";
                 if(btn.textContent.includes(status) || (status === 'all' && btn.textContent === 'Semua')) {
-                    btn.className = "tab-btn px-4 py-1.5 rounded-xl border border-zinc-600 bg-zinc-800 text-white text-sm font-medium cursor-pointer";
-                }
-            });
-            renderTasks();
-        }
-
-        function renderTasks() {
-            const listEl = document.getElementById('task-list');
-            const searchQuery = document.getElementById('search-input').value.toLowerCase();
-            const catFilter = document.getElementById('category-filter').value;
-
-            const filtered = tasks.filter(t => {
-                const matchStatus = currentFilterStatus === 'all' || t.status === currentFilterStatus;
-                const matchCat = !catFilter || t.category === catFilter;
-                const matchSearch = t.title.toLowerCase().includes(searchQuery);
-                return matchStatus && matchCat && matchSearch;
-            });
-
-            if (filtered.length === 0) {
-                listEl.innerHTML = `<div class="text-center py-16 bg-[#121216] border border-[#27272a] rounded-2xl text-zinc-500 text-sm">Belum ada task yang sesuai.</div>`;
-                return;
-            }
-
-            listEl.innerHTML = filtered.map(t => `
-                <div class="bg-[#121216]/40 hover:bg-[#121216]/80 border border-[#27272a] rounded-2xl p-4 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div class="flex items-start gap-3">
-                        <button onclick="toggleStatus(${t.id})" class="mt-1 w-5 h-5 rounded-lg border flex items-center justify-center transition cursor-pointer ${t.status === 'Completed' ? 'bg-emerald-500 border-emerald-500 text-black' : 'border-zinc-600'}">
-                            ${t.status === 'Completed' ? '✓' : ''}
-                        </button>
-                        <div>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <h3 class="font-semibold text-white text-base ${t.status === 'Completed' ? 'line-through text-zinc-500' : ''}">${t.title}</h3>
-                                <span class="text-xs px-2.5 py-0.5 rounded-full font-medium bg-zinc-800 text-zinc-300 border border-zinc-700">${t.category}</span>
-                                <span class="text-xs px-2 py-0.5 rounded font-bold ${t.priority === 'High' ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'}">${t.priority}</span>
-                            </div>
-                            <p class="text-xs text-zinc-400 mt-1">${t.notes || 'Tidak ada catatan'}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-3 sm:pt-0 border-[#27272a]">
-                        <div class="text-right">
-                            <span class="text-xs font-medium block text-zinc-400">${t.deadline}</span>
-                            <span class="text-[10px] px-2 py-0.5 rounded-full mt-0.5 inline-block bg-zinc-800 text-zinc-300">${t.status}</span>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <button onclick='editTask(${JSON.stringify(t)})' class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg cursor-pointer" title="Edit">✏️</button>
-                            <button onclick="deleteTask(${t.id})" class="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg cursor-pointer" title="Hapus">🗑️</button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function openModal() {
-            document.getElementById('modal-title').textContent = "Tambah Task Baru";
-            document.getElementById('task-id').value = "";
-            document.getElementById('form-title').value = "";
-            document.getElementById('form-notes').value = "";
-            document.getElementById('task-modal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('task-modal').classList.add('hidden');
-        }
-
-        function editTask(t) {
-            document.getElementById('modal-title').textContent = "Edit Task";
-            document.getElementById('task-id').value = t.id;
-            document.getElementById('form-title').value = t.title;
-            document.getElementById('form-category').value = t.category;
-            document.getElementById('form-priority').value = t.priority;
-            document.getElementById('form-deadline').value = t.deadline;
-            document.getElementById('form-status').value = t.status;
-            document.getElementById('form-notes').value = t.notes || '';
-            document.getElementById('task-modal').classList.remove('hidden');
-        }
-
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            const id = document.getElementById('task-id').value;
-            const title = document.getElementById('form-title').value;
-            const category = document.getElementById('form-category').value;
-            const priority = document.getElementById('form-priority').value;
-            const deadline = document.getElementById('form-deadline').value;
-            const status = document.getElementById('form-status').value;
-            const notes = document.getElementById('form-notes').value;
-
-            if (id) {
-                const { error } = await _supabase.from('tasks').update({ title, category, priority, deadline, status, notes }).eq('id', id);
-                if (error) alert("Gagal update: " + error.message);
-            } else {
-                const newId = Date.now();
-                const { error } = await _supabase.from('tasks').insert([{ id: newId, title, category, priority, deadline, status, notes }]);
-                if (error) alert("Gagal tambah: " + error.message);
-            }
-
-            closeModal();
-            fetchTasks();
-        }
-
-        async function deleteTask(id) {
-            if(confirm('Yakin ingin menghapus task ini?')) {
-                const { error } = await _supabase.from('tasks').delete().eq('id', id);
-                if (error) {
-                    alert("Gagal hapus: " + error.message);
-                } else {
-                    fetchTasks();
-                }
-            }
-        }
-
-        async function toggleStatus(id) {
-            const task = tasks.find(t => t.id === id);
-            if (!task) return;
-            const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
-            
-            const { error } = await _supabase.from('tasks').update({ status: newStatus }).eq('id', id);
-            if (error) {
-                alert("Gagal update status: " + error.message);
-            } else {
-                fetchTasks();
-            }
-        }
-
-        function changeMonth(dir) {
-            viewMonth += dir;
-            if(viewMonth > 11) { viewMonth = 0; viewYear++; }
-            if(viewMonth < 0) { viewMonth = 11; viewYear--; }
-            renderCalendar();
-        }
-
-        function resetToCurrentMonth() {
-            viewMonth = new Date().getMonth();
-            viewYear = new Date().getFullYear();
-            renderCalendar();
-        }
-
-        function renderCalendar() {
-            document.getElementById('calendar-month-year').textContent = `${monthNames[viewMonth]} ${viewYear}`;
-            const firstDayIndex = new Date(viewYear, viewMonth, 1).getDay();
-            const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
-            const grid = document.getElementById('calendar-grid');
-            
-            let html = '';
-            for(let i=0; i<firstDayIndex; i++) {
-                html += `<div class="min-h-[85px] p-2 rounded-xl border border-zinc-900 bg-zinc-900/20"></div>`;
-            }
-
-            for(let i=1; i<=totalDays; i++) {
-                const dStr = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-                const dayTasks = tasks.filter(t => t.deadline === dStr);
-                const isSelected = selectedDateStr === dStr ? 'border-indigo-500 bg-indigo-600/10' : 'border-[#27272a] bg-zinc-900';
-
-                html += `
-                    <div onclick="selectDate('${dStr}')" class="min-h-[85px] p-2 rounded-xl border ${isSelected} cursor-pointer flex flex-col justify-between transition hover:border-indigo-500">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-medium text-zinc-300">${i}</span>
-                            ${dayTasks.length > 0 ? '<span class="w-2 h-2 rounded-full bg-indigo-500"></span>' : ''}
-                        </div>
-                        <div class="space-y-1">
-                            ${dayTasks.slice(0,2).map(t => `<div class="text-[10px] truncate px-1 py-0.5 rounded bg-zinc-800 text-zinc-300">${t.title}</div>`).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-            grid.innerHTML = html;
-            renderCalendarDetails();
-        }
-
-        function selectDate(dStr) {
-            selectedDateStr = dStr;
-            renderCalendar();
-        }
-
-        function renderCalendarDetails() {
-            document.getElementById('selected-date-text').textContent = selectedDateStr;
-            const container = document.getElementById('calendar-date-tasks');
-            const matched = tasks.filter(t => t.deadline === selectedDateStr);
-
-            if(matched.length === 0) {
-                container.innerHTML = `<div class="text-xs text-zinc-500 italic">Tidak ada deadline task di tanggal ini.</div>`;
-                return;
-            }
-
-            container.innerHTML = matched.map(t => `
-                <div class="bg-zinc-900 border border-[#27272a] rounded-xl p-3 flex items-center justify-between">
-                    <div>
-                        <h4 class="text-sm font-medium text-white">${t.title}</h4>
-                        <p class="text-xs text-zinc-400">${t.category} • ${t.priority}</p>
-                    </div>
-                    <span class="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">${t.status}</span>
-                </div>
-            `).join('');
-        }
-
-        // Ambil data pertama kali saat halaman dibuka
-        fetchTasks();
-    </script>
-</body>
-</html>
+                    btn.className = "tab-btn px-4 py-1.5 rounded-xl border border-zinc-600 bg-zinc-800
