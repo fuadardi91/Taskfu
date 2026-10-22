@@ -20,8 +20,6 @@
             }
         }
     </script>
-    <!-- Alpine.js untuk Interaksi UI -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -47,7 +45,7 @@
                 <p class="text-sm text-zinc-400 mt-1 italic">"Kerjain Deadline jangan sampai Dead"</p>
             </div>
             <div class="flex items-center gap-3">
-                <button @click="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm cursor-pointer">
+                <button type="button" @click="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm cursor-pointer z-10 relative">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Tambah Task Baru
                 </button>
@@ -58,10 +56,10 @@
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6 bg-cardBg p-3 rounded-2xl border border-cardBorder">
             <!-- Mode Toggle (List / Calendar) -->
             <div class="flex bg-zinc-900 p-1 rounded-xl border border-cardBorder">
-                <button @click="currentView = 'list'" :class="currentView === 'list' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer">
+                <button type="button" @click="currentView = 'list'" :class="currentView === 'list' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer">
                     📋 List View
                 </button>
-                <button @click="currentView = 'calendar'" :class="currentView === 'calendar' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer">
+                <button type="button" @click="currentView = 'calendar'" :class="currentView === 'calendar' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer">
                     📅 Calendar View
                 </button>
             </div>
@@ -82,16 +80,16 @@
         <div x-show="currentView === 'list'" x-transition>
             <!-- Status Tabs -->
             <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-                <button @click="statusFilter = 'all'" :class="statusFilter === 'all' ? 'bg-zinc-800 text-white border-zinc-600' : 'bg-transparent text-zinc-400 border-cardBorder'" class="px-4 py-1.5 rounded-xl border text-sm font-medium transition whitespace-nowrap cursor-pointer">
+                <button type="button" @click="statusFilter = 'all'" :class="statusFilter === 'all' ? 'bg-zinc-800 text-white border-zinc-600' : 'bg-transparent text-zinc-400 border-cardBorder'" class="px-4 py-1.5 rounded-xl border text-sm font-medium transition whitespace-nowrap cursor-pointer">
                     Semua (<span x-text="tasks.length"></span>)
                 </button>
-                <button @click="statusFilter = 'To Do'" :class="statusFilter === 'To Do' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-transparent text-zinc-400 border-cardBorder'" class="px-4 py-1.5 rounded-xl border text-sm font-medium transition whitespace-nowrap cursor-pointer">
+                <button type="button" @click="statusFilter = 'To Do'" :class="statusFilter === 'To Do' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-transparent text-zinc-400 border-cardBorder'" class="px-4 py-1.5 rounded-xl border text-sm font-medium transition whitespace-nowrap cursor-pointer">
                     To Do (<span x-text="tasks.filter(t => t.status === 'To Do').length"></span>)
                 </button>
-                <button @click="statusFilter = 'In Progress'" :class="statusFilter === 'In Progress' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : 'bg-transparent text-zinc-400 border-cardBorder'" class="px-4 py-1.5 rounded-xl border text-sm font-medium transition whitespace-nowrap cursor-pointer">
+                <button type="button" @click="statusFilter = 'In Progress'" :class="statusFilter === 'In Progress' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : 'bg-transparent text-zinc-400 border-cardBorder'" class="px-4 py-1.5 rounded-xl border text-sm font-medium transition whitespace-nowrap cursor-pointer">
                     In Progress (<span x-text="tasks.filter(t => t.status === 'In Progress').length"></span>)
                 </button>
-                <button @click="statusFilter = 'Completed'" :class="statusFilter === 'Completed' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-transparent text-zinc-400 border-cardBorder'" class="px-4 py-1.5 rounded-xl border text-sm font-medium transition whitespace-nowrap cursor-pointer">
+                <button type="button" @click="statusFilter = 'Completed'" :class="statusFilter === 'Completed' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-transparent text-zinc-400 border-cardBorder'" class="px-4 py-1.5 rounded-xl border text-sm font-medium transition whitespace-nowrap cursor-pointer">
                     Completed (<span x-text="tasks.filter(t => t.status === 'Completed').length"></span>)
                 </button>
             </div>
@@ -101,7 +99,7 @@
                 <template x-for="task in filteredTasks" :key="task.id">
                     <div class="bg-cardBorder/40 hover:bg-cardBorder/80 border border-cardBorder rounded-2xl p-4 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
                         <div class="flex items-start gap-3">
-                            <button @click="toggleComplete(task)" class="mt-1 w-5 h-5 rounded-lg border flex items-center justify-center transition cursor-pointer"
+                            <button type="button" @click="toggleComplete(task)" class="mt-1 w-5 h-5 rounded-lg border flex items-center justify-center transition cursor-pointer"
                                 :class="task.status === 'Completed' ? 'bg-emerald-500 border-emerald-500 text-darkBg' : 'border-zinc-600 hover:border-indigo-500'">
                                 <svg x-show="task.status === 'Completed'" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             </button>
@@ -140,10 +138,10 @@
                             </div>
 
                             <div class="flex items-center gap-1">
-                                <button @click="editTask(task)" class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition cursor-pointer" title="Edit">
+                                <button type="button" @click="editTask(task)" class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition cursor-pointer" title="Edit">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </button>
-                                <button @click="deleteTask(task)" class="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition cursor-pointer" title="Hapus">
+                                <button type="button" @click="deleteTask(task)" class="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition cursor-pointer" title="Hapus">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
                             </div>
@@ -162,11 +160,11 @@
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-lg font-bold text-white" x-text="monthNames[currentMonth] + ' ' + currentYear"></h2>
                 <div class="flex items-center gap-2">
-                    <button @click="changeMonth(-1)" class="p-2 bg-zinc-900 border border-cardBorder hover:bg-zinc-800 rounded-xl text-zinc-300 transition cursor-pointer">
+                    <button type="button" @click="changeMonth(-1)" class="p-2 bg-zinc-900 border border-cardBorder hover:bg-zinc-800 rounded-xl text-zinc-300 transition cursor-pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                     </button>
-                    <button @click="currentMonth = new Date().getMonth(); currentYear = new Date().getFullYear();" class="px-3 py-1.5 bg-zinc-900 border border-cardBorder hover:bg-zinc-800 rounded-xl text-xs font-medium text-zinc-300 transition cursor-pointer">Hari Ini</button>
-                    <button @click="changeMonth(1)" class="p-2 bg-zinc-900 border border-cardBorder hover:bg-zinc-800 rounded-xl text-zinc-300 transition cursor-pointer">
+                    <button type="button" @click="currentMonth = new Date().getMonth(); currentYear = new Date().getFullYear();" class="px-3 py-1.5 bg-zinc-900 border border-cardBorder hover:bg-zinc-800 rounded-xl text-xs font-medium text-zinc-300 transition cursor-pointer">Hari Ini</button>
+                    <button type="button" @click="changeMonth(1)" class="p-2 bg-zinc-900 border border-cardBorder hover:bg-zinc-800 rounded-xl text-zinc-300 transition cursor-pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     </button>
                 </div>
@@ -235,7 +233,7 @@
     </div>
 
     <!-- ================= MODAL TAMBAH/EDIT TASK ================= -->
-    <div x-show="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" x-transition.opacity>
+    <div x-show="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" x-transition.opacity style="display: none;">
         <div class="bg-cardBg border border-cardBorder rounded-2xl w-full max-w-md p-6 shadow-2xl" @click.away="closeModal()">
             <h2 class="text-lg font-bold text-white mb-4" x-text="isEditMode ? 'Edit Task' : 'Tambah Task Baru'"></h2>
             
@@ -293,12 +291,14 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs & Logic -->
+    <!-- Alpine.js harus dimuat duluan sebelum script Firebase -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Firebase & Logic Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Konfigurasi Firebase terbaru dari kamu
         const firebaseConfig = {
             apiKey: "AIzaSyCW0IEz5qLmKEe62wvJSAYGcQ73_o4kAu8",
             authDomain: "taskfufu.firebaseapp.com",
@@ -356,8 +356,8 @@
                             statusEl.textContent = "Synced Live";
                             statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal border border-emerald-500/30";
                         }, (error) => {
-                            console.warn("Firebase snapshot warning:", error);
-                            statusEl.textContent = "Rules Need Publish";
+                            console.warn("Firebase warning:", error);
+                            statusEl.textContent = "Check Rules";
                             statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-normal border border-amber-500/30";
                         });
                     } catch (err) {
@@ -416,7 +416,7 @@
                         }
                         this.closeModal();
                     } catch (e) {
-                        alert("Gagal menyimpan ke Firebase. Pastikan Firestore Rules sudah di-set ke 'allow read, write: if true;' di console Firebase:\n\n" + e.message);
+                        alert("Gagal menyimpan ke Firebase. Pastikan Firestore Rules sudah diatur ke 'allow read, write: if true;':\n\n" + e.message);
                     }
                 },
 
