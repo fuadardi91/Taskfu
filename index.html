@@ -19,7 +19,7 @@
             <div>
                 <h1 class="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
                     ⚡ Task Fufu 
-                    <span id="sync-status" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-normal border border-amber-500/30">Connecting...</span>
+                    <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 font-normal border border-indigo-500/30">Local Mode (Super Fast)</span>
                 </h1>
                 <p class="text-sm text-zinc-400 mt-1 italic">"Kerjain Deadline jangan sampai Dead"</p>
             </div>
@@ -41,7 +41,9 @@
                     <option value="">Semua Kategori</option>
                     <option value="Desain">Desain</option>
                     <option value="Fastwork">Fastwork</option>
-                    <option value="Admin">Admin</option>
+                    <option value="Bumper">Bumper</option>
+                    <option value="Freelance">Freelance</option>
+                    <option value="Event">Event</option>
                     <option value="Lainnya">Lainnya</option>
                 </select>
             </div>
@@ -99,7 +101,9 @@
                         <select id="form-category" class="w-full bg-zinc-900 border border-[#27272a] text-sm rounded-xl px-3 py-2 text-zinc-200 focus:outline-none">
                             <option value="Desain">Desain</option>
                             <option value="Fastwork">Fastwork</option>
-                            <option value="Admin">Admin</option>
+                            <option value="Bumper">Bumper</option>
+                            <option value="Freelance">Freelance</option>
+                            <option value="Event">Event</option>
                             <option value="Lainnya">Lainnya</option>
                         </select>
                     </div>
@@ -138,17 +142,12 @@
         </div>
     </div>
 
-    <!-- SUPABASE JS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- PURE LOCAL JAVASCRIPT LOGIC -->
     <script>
-        // ==========================================
-        // MASUKKAN SUPABASE URL & ANON KEY KAMU DI SINI
-        // ==========================================
-        const SUPABASE_URL = 'https://wnrlyvvgwpfytjjlnoke.supabase.co';
-        const SUPABASE_ANON_KEY = 'https://wnrlyvvgwpfytjjlnoke.supabase.co/auth/v1/.well-known/jwks.json'
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let tasks = JSON.parse(localStorage.getItem('task_fufu_data')) || [
+            { id: 1, title: 'Bikin Banner Event M.I.C.E 2027', category: 'Desain', deadline: new Date().toISOString().split('T')[0], priority: 'High', status: 'In Progress', notes: 'Revisi warna dari klien' }
+        ];
 
-        let tasks = [];
         let currentFilterStatus = 'all';
         let currentViewMode = 'list';
         let viewMonth = new Date().getMonth();
@@ -157,26 +156,8 @@
 
         const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-        // Ambil data dari Supabase saat aplikasi dibuka
-        async function fetchTasks() {
-            const statusEl = document.getElementById('sync-status');
-            try {
-                const { data, error } = await _supabase.from('tasks').select('*');
-                if (error) throw error;
-                
-                tasks = data || [];
-                tasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
-                
-                statusEl.textContent = "Synced Live";
-                statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal border border-emerald-500/30";
-                
-                renderTasks();
-                renderCalendar();
-            } catch (err) {
-                console.error("Supabase error:", err);
-                statusEl.textContent = "Connection Error";
-                statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-normal border border-red-500/30";
-            }
+        function saveDataLocal() {
+            localStorage.setItem('task_fufu_data', JSON.stringify(tasks));
         }
 
         function switchView(mode) {
@@ -253,8 +234,8 @@
                             <span class="text-[10px] px-2 py-0.5 rounded-full mt-0.5 inline-block bg-zinc-800 text-zinc-300">${t.status}</span>
                         </div>
                         <div class="flex items-center gap-1">
-                            <button onclick='editTask(${JSON.stringify(t)})' class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg cursor-pointer">✏️</button>
-                            <button onclick="deleteTask(${t.id})" class="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg cursor-pointer">🗑️</button>
+                            <button onclick='editTask(${JSON.stringify(t)})' class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg cursor-pointer" title="Edit">✏️</button>
+                            <button onclick="deleteTask(${t.id})" class="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg cursor-pointer" title="Hapus">🗑️</button>
                         </div>
                     </div>
                 </div>
@@ -285,7 +266,7 @@
             document.getElementById('task-modal').classList.remove('hidden');
         }
 
-        async function handleFormSubmit(e) {
+        function handleFormSubmit(e) {
             e.preventDefault();
             const id = document.getElementById('task-id').value;
             const title = document.getElementById('form-title').value;
@@ -296,45 +277,35 @@
             const notes = document.getElementById('form-notes').value;
 
             if (id) {
-                // Update ke Supabase
-                const { error } = await _supabase.from('tasks').update({ title, category, priority, deadline, status, notes }).eq('id', id);
-                if (error) alert("Gagal update: " + error.message);
+                tasks = tasks.map(t => t.id == id ? { ...t, title, category, priority, deadline, status, notes } : t);
             } else {
-                // Insert ke Supabase
-                const newId = Date.now();
-                const { error } = await _supabase.from('tasks').insert([{ id: newId, title, category, priority, deadline, status, notes }]);
-                if (error) alert("Gagal tambah: " + error.message);
+                tasks.push({ id: Date.now(), title, category, priority, deadline, status, notes });
             }
 
+            saveDataLocal();
+            renderTasks();
+            renderCalendar();
             closeModal();
-            fetchTasks();
         }
 
-        async function deleteTask(id) {
+        function deleteTask(id) {
             if(confirm('Yakin ingin menghapus task ini?')) {
-                const { error } = await _supabase.from('tasks').delete().eq('id', id);
-                if (error) {
-                    alert("Gagal hapus: " + error.message);
-                } else {
-                    fetchTasks();
-                }
+                tasks = tasks.filter(t => t.id !== id);
+                saveDataLocal();
+                renderTasks();
+                renderCalendar();
             }
         }
 
-        async function toggleStatus(id) {
+        function toggleStatus(id) {
             const task = tasks.find(t => t.id === id);
             if (!task) return;
-            const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
-            
-            const { error } = await _supabase.from('tasks').update({ status: newStatus }).eq('id', id);
-            if (error) {
-                alert("Gagal update status: " + error.message);
-            } else {
-                fetchTasks();
-            }
+            task.status = task.status === 'Completed' ? 'To Do' : 'Completed';
+            saveDataLocal();
+            renderTasks();
+            renderCalendar();
         }
 
-        // Calendar Logic
         function changeMonth(dir) {
             viewMonth += dir;
             if(viewMonth > 11) { viewMonth = 0; viewYear++; }
@@ -406,8 +377,9 @@
             `).join('');
         }
 
-        // Panggil fungsi ambil data saat halaman pertama dimuat
-        fetchTasks();
+        // Inisialisasi awal
+        renderTasks();
+        renderCalendar();
     </script>
 </body>
 </html>
